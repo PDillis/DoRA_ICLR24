@@ -1,18 +1,17 @@
 # DoRA — Python dependencies (PyTorch 2.x, CUDA 12.x)
 #
-# Quick-start (conda):
+# Install:
 #   conda create -n dora python=3.10
 #   conda activate dora
-#   conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
-#   pip install -r requirements.txt
+#   uv pip install -r requirements.txt
 #
-# Alternatively (pip-only, adjust CUDA wheel as needed):
-#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-#   pip install -r requirements.txt
+# For a different CUDA version change the index URL, e.g. cu118 for CUDA 11.8.
+
+--extra-index-url https://download.pytorch.org/whl/cu121
 
 # Core deep-learning
-# torch>=2.3.0          # installed via conda/wheel above
-# torchvision>=0.18.0   # installed via conda/wheel above
+torch>=2.3.0
+torchvision>=0.18.0
 
 # Video decoding
 decord>=0.6.0
@@ -21,8 +20,6 @@ decord>=0.6.0
 einops>=0.7.0
 
 # Nearest-neighbor search (KNN evaluation)
-# GPU build: install via conda:  conda install -c pytorch faiss-gpu
-# CPU fallback: faiss-cpu>=1.8.0
 faiss-cpu>=1.8.0
 
 # Image handling
