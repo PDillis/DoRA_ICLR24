@@ -23,7 +23,7 @@ import vision_transformer as vits
 from vision_transformer import DINOHead
 
 
-from WTDataloader import WT_dataset_1vid
+from WTDataloader import build_dataset
 from einops import rearrange, reduce, repeat
 import torchvision
 
@@ -122,7 +122,12 @@ def get_args_parser():
 
     # Misc
     parser.add_argument('--data_path', default='/scratch/shashank/dataset/WT_videos/', type=str,
-        help='Please specify path to the ImageNet training data.')
+        help='Path to video data: a single MP4 file or a directory of MP4s (see --data_format).')
+    parser.add_argument('--data_format', default='single_video', type=str,
+        choices=['single_video', 'multi_video', 'stylegan', 'carla', 'bdd100k', 'nuscenes', 'real_world_driving'],
+        help="""Dataset format. 'single_video': one long MP4 (Walking-Tours, StyleGAN single walk).
+        'multi_video': directory of MP4 clips, no cross-boundary sampling.
+        'stylegan': auto-detects file vs directory. 'carla'/'bdd100k'/'nuscenes': stubs (not yet implemented).""")
     parser.add_argument('--output_dir', default="/scratch/shashank/checkpoint/dino_WT/vanilla/", type=str, help='Path to save logs and checkpoints.')
     parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
@@ -149,10 +154,13 @@ def train_dino(args):
     
     
     
-    dataset = WT_dataset_1vid(args.data_path, 
-                args.frame_per_clip,  
-                args.step_between_clips,
-                transform=transform) 
+    dataset = build_dataset(
+        args.data_format,
+        args.data_path,
+        args.frame_per_clip,
+        args.step_between_clips,
+        transform=transform,
+    )
 
 
     sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
@@ -237,7 +245,7 @@ def train_dino(args):
     # for mixed precision training
     fp16_scaler = None
     if args.use_fp16:
-        fp16_scaler = torch.cuda.amp.GradScaler()
+        fp16_scaler = torch.amp.GradScaler('cuda')
 
     # ============ init schedulers ... ============
     lr_schedule = utils.cosine_scheduler(
@@ -329,7 +337,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
         student_masked_global = []
         # teacher and student forward passes + compute dino loss
-        with torch.cuda.amp.autocast(fp16_scaler is not None):
+        with torch.amp.autocast('cuda', enabled=fp16_scaler is not None):
             teacher_global, teacher_patches, attn, query, key = teacher(images[:1], return_track= True)  # only the 2 global views pass through the teacher
             # masked_img = utils.attention_tracking(attn, query, key, args.patch_size, images[:2])
             masked_img = utils.MOT(attn, query, key, teacher_patches, args.patch_size, images[:1])
