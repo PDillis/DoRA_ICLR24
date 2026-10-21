@@ -537,17 +537,20 @@ def init_distributed_mode(args):
         print('Does not support training without GPU.')
         sys.exit(1)
 
+    # Set device before init_process_group so NCCL knows which GPU each rank owns.
+    # Passing device_id eliminates the "devices unknown" barrier warning (PyTorch >= 2.3).
+    torch.cuda.set_device(args.gpu)
     dist.init_process_group(
         backend="nccl",
         init_method=args.dist_url,
         world_size=args.world_size,
         rank=args.rank,
+        device_id=torch.device('cuda', args.gpu),
     )
 
-    torch.cuda.set_device(args.gpu)
     print('| distributed init (rank {}): {}'.format(
         args.rank, args.dist_url), flush=True)
-    dist.barrier()
+    dist.barrier(device_ids=[args.gpu])
     setup_for_distributed(args.rank == 0)
 
 

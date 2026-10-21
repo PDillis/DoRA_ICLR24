@@ -1,5 +1,7 @@
 import os
 import sys
+# Allow running as `torchrun eval/eval_knn.py` from the repo root
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 
 import torch
